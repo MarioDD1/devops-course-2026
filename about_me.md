@@ -5,4 +5,4 @@
 - Технологии, которые хочу освоить:
   1. Docker
   2. GitHub Actions
-  3. Linux и Bash
+  3. Linux
