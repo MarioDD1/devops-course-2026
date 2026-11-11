@@ -1,0 +1,3 @@
+
+.githooks/commit-msg text eol=lf
+scripts/*.sh text eol=lf
