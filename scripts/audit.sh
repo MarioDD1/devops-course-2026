@@ -43,5 +43,17 @@ FIND_CODE=$?
 KEY_MODE=$(sudo stat -c '%a' /etc/ssl/private/devops.key)
 if [[ $FIND_CODE -eq 0 && -z "$WORLD_WRITABLE" && "$KEY_MODE" == 600 ]]; then FILES_OK=yes; fi
 check 'No world-writable paths and TLS key mode 600' yes "$FILES_OK"
+echo '[5] Containers'
+check 'Docker service active' active "$(systemctl is-active docker)"
+check 'PostgreSQL container healthy' healthy "$(docker inspect -f '{{.State.Health.Status}}' app-db-1)"
+PORTS_OK=no
+if LISTENERS=$(ss -H -tln) && PORT_BINDINGS=$(docker ps --format '{{.Ports}}'); then
+    if ! awk '$4 ~ /:(5000|5432)$/ && $4 !~ /^127\.0\.0\.1:/ {found=1} END{exit !found}' <<< "$LISTENERS" \
+       && ! grep -Eq '(^|[ ,])([^ ,]*:)?(5000|5432)->' <<< "$(sed -E 's/(^|[ ,])127\.0\.0\.1:(5000|5432)->[^, ]*/\1/g' <<< "$PORT_BINDINGS")"; then
+        PORTS_OK=yes
+    fi
+fi
+check 'Ports 5000 and 5432 are not published beyond loopback' yes "$PORTS_OK"
+check 'Mode of ~/app/.env' 600 "$(stat -c '%a' "$HOME/app/.env")"
 echo "Passed: $PASS; Failed: $FAIL"
 [[ $FAIL -eq 0 ]] && exit 0 || exit 1
